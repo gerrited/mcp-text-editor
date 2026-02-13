@@ -44,7 +44,7 @@ var mcpThread = new Thread(() =>
         };
     })
     .WithStdioServerTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly(typeof(MainWindow).Assembly);
 
     var host = builder.Build();
 
