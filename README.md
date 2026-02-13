@@ -1,15 +1,15 @@
 # MCP Text Editor
 
-A cross-platform text editor that can be remote-controlled via the **Model Context Protocol (MCP)** over stdio. Built with [Avalonia UI](https://avaloniaui.net/) and designed to work with Claude Desktop.
+A cross-platform text editor that can be remote-controlled via the **Model Context Protocol (MCP)**. Supports **stdio** and **Streamable HTTP** transports, configurable via `appsettings.json`. Built with [Avalonia UI](https://avaloniaui.net/) and designed to work with Claude Desktop and other MCP clients.
 
 ## Architecture
 
 ```
-┌──────────────┐     stdio (stdin/stdout)      ┌─────────────────────┐
-│ Claude       │ ◄──────────────────────────►  │  McpTextEditor      │
-│ Desktop      │    MCP JSON-RPC messages      │                     │
-│              │                               │  ┌───────────────┐  │
-│ (MCP Client) │                               │  │ MCP Server    │  │
+┌──────────────┐  stdio or Streamable HTTP     ┌─────────────────────┐
+│ MCP Client   │ ◄──────────────────────────►  │  McpTextEditor      │
+│ (Claude      │    MCP JSON-RPC messages      │                     │
+│  Desktop,    │                               │  ┌───────────────┐  │
+│  etc.)       │                               │  │ MCP Server    │  │
 │              │                               │  │ (background)  │  │
 │              │                               │  └──────┬────────┘  │
 │              │                               │         │ Dispatch  │
@@ -20,9 +20,10 @@ A cross-platform text editor that can be remote-controlled via the **Model Conte
 └──────────────┘                               └─────────────────────┘
 ```
 
-- **One process** runs both the Avalonia UI (main thread) and the MCP stdio server (background thread).
+- **One process** runs both the Avalonia UI (main thread) and the MCP server (background thread).
+- **Transport mode** is configured in `appsettings.json`: `Stdio` (default) or `Http`.
 - Tool calls are dispatched to the UI thread via `Dispatcher.UIThread` for thread safety.
-- All logging goes to **stderr** — stdout is exclusively for MCP protocol messages.
+- In stdio mode, logging goes to **stderr** — stdout is exclusively for MCP protocol messages.
 
 ## Prerequisites
 
@@ -72,6 +73,87 @@ Add this to your `claude_desktop_config.json`:
 
 After editing the config, restart Claude Desktop. You should see "text-editor" in the MCP tools list (hammer icon).
 
+## Transport Configuration
+
+Transport mode is configured in `appsettings.json`:
+
+```json
+{
+  "Transport": {
+    "Mode": "Stdio",
+    "Http": {
+      "Url": "https://localhost:5000",
+      "McpPath": "/mcp",
+      "ApiKey": "",
+      "Certificate": {
+        "Path": "",
+        "Password": ""
+      }
+    }
+  }
+}
+```
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `Mode` | `"Stdio"` or `"Http"` | `"Stdio"` |
+| `Http.Url` | Listen URL (scheme + host + port) | `https://localhost:5000` |
+| `Http.McpPath` | MCP endpoint path | `/mcp` |
+| `Http.ApiKey` | Bearer token for authentication (empty = no auth) | `""` |
+| `Http.Certificate.Path` | Path to PFX certificate file (empty = dev cert) | `""` |
+| `Http.Certificate.Password` | PFX certificate password | `""` |
+
+### Stdio Mode (default)
+
+No additional configuration needed. Works with Claude Desktop out of the box.
+
+### HTTP Mode
+
+1. Set `"Mode": "Http"` in `appsettings.json`
+2. Set an API key: `"ApiKey": "your-secret-key"`
+3. For HTTPS, either:
+   - Use the .NET dev cert: `dotnet dev-certs https --trust` (no certificate config needed)
+   - Or provide a PFX certificate via `Certificate.Path` and `Certificate.Password`
+
+> **Security:** Store the API key and certificate password outside of source control. Use `appsettings.Development.json`, environment variables, or [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets).
+
+Clients connect with a Bearer token:
+
+```bash
+# Test the endpoint
+curl -k -H "Authorization: Bearer your-secret-key" \
+  -X POST https://localhost:5000/mcp \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
+```
+
+### Connecting Claude Desktop to HTTP Mode
+
+Claude Desktop doesn't natively support bearer token authentication over Streamable HTTP. Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) npm package as a bridge:
+
+```json
+{
+  "mcpServers": {
+    "text-editor": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://localhost:5000/mcp",
+        "--header",
+        "Authorization: Bearer your-secret-key"
+      ],
+      "env": {
+        "NODE_EXTRA_CA_CERTS": "/path/to/dev-cert.pem"
+      }
+    }
+  }
+}
+```
+
+> **HTTPS with dev certs:** Node.js doesn't trust the .NET dev certificate by default. Either export it as PEM (`dotnet dev-certs https --export-path ./dev-cert.pem --format Pem --no-password`) and set `NODE_EXTRA_CA_CERTS`, or use `"NODE_OPTIONS": "--use-system-ca"` (Node.js 23.8+), or switch to plain `http://` for localhost.
+
+Requires [Node.js](https://nodejs.org/) (for npx).
+
 ## Available MCP Tools
 
 | Tool | Description |
@@ -116,7 +198,10 @@ dotnet add package ModelContextProtocol --prerelease
 
 ```
 ├── McpTextEditor.csproj      # Project file with NuGet references
-├── Program.cs                # Entry point: starts UI + MCP server
+├── Program.cs                # Entry point: starts UI + MCP server (transport selection)
+├── appsettings.json          # Transport configuration (Stdio/Http)
+├── TransportConfig.cs        # Strongly-typed config classes
+├── ApiKeyAuthHandler.cs      # Bearer token authentication handler
 ├── App.axaml                 # Avalonia application definition
 ├── App.axaml.cs              # Application startup, creates MainWindow
 ├── MainWindow.axaml          # Editor UI layout (XAML)
