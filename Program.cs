@@ -28,23 +28,13 @@ var mcpThread = new Thread(() =>
     builder.Logging.AddConsole(opts => opts.LogToStandardErrorThreshold = LogLevel.Trace);
 
     // Register the editor window as a singleton so MCP tools can access it
-    builder.Services.AddSingleton(editorWindow!);
+    builder.Services.AddSingleton<MainWindow>(editorWindow!);
 
     // Register MCP server with stdio transport
-    builder.Services.AddMcpServer(options =>
-    {
-        options.ServerInfo = new()
-        {
-            Name = "mcp-text-editor",
-            Version = "1.0.0"
-        };
-        options.Capabilities = new()
-        {
-            Tools = new() { }
-        };
-    })
-    .WithStdioServerTransport()
-    .WithToolsFromAssembly(typeof(MainWindow).Assembly);
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithToolsFromAssembly(typeof(MainWindow).Assembly);
 
     var host = builder.Build();
 
