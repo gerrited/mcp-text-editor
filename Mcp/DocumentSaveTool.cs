@@ -6,10 +6,10 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class DocumentSaveTool
 {
-    [McpServerTool("editor_document_save"),
+    [McpServerTool(Name = "editor_document_save"),
      Description("Save the current document. Optionally provide a file path for 'Save As'. If no path is given, saves to the current file.")]
     public static string DocumentSave(
-        EditorForm editor,
+        MainWindow editor,
         [Description("Optional file path. If omitted, saves to the current file path.")] string? filePath = null)
     {
         try

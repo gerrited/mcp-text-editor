@@ -6,10 +6,10 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class DocumentOpenTool
 {
-    [McpServerTool("editor_document_open"),
+    [McpServerTool(Name = "editor_document_open"),
      Description("Open an existing text file in the editor. Provide the full file path.")]
     public static string DocumentOpen(
-        EditorForm editor,
+        MainWindow editor,
         [Description("Full path to the text file to open.")] string filePath)
     {
         try
