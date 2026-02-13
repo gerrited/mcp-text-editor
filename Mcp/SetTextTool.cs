@@ -6,10 +6,10 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class SetTextTool
 {
-    [McpServerTool("editor_set_text"),
+    [McpServerTool(Name = "editor_set_text"),
      Description("Replace the entire text content in the editor with new text.")]
     public static string SetText(
-        EditorForm editor,
+        MainWindow editor,
         [Description("The new text content to set in the editor.")] string text)
     {
         editor.SetText(text);

@@ -1,0 +1,39 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="McpTextEditor.MainWindow"
+        Title="MCP Text Editor"
+        Width="900" Height="650"
+        WindowStartupLocation="CenterScreen">
+
+    <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_New" Click="OnNew" />
+                <MenuItem Header="_Open..." Click="OnOpen" />
+                <MenuItem Header="_Save" Click="OnSave" />
+                <MenuItem Header="Save _As..." Click="OnSaveAs" />
+                <Separator />
+                <MenuItem Header="E_xit" Click="OnExit" />
+            </MenuItem>
+        </Menu>
+
+        <!-- Status Bar -->
+        <Border DockPanel.Dock="Bottom" Background="#f0f0f0" Padding="6,3">
+            <DockPanel>
+                <TextBlock x:Name="StatusLabel" DockPanel.Dock="Right" Text="Ready" />
+                <TextBlock x:Name="FileLabel" Text="No file" />
+            </DockPanel>
+        </Border>
+
+        <!-- Editor -->
+        <TextBox x:Name="Editor"
+                 AcceptsReturn="True"
+                 AcceptsTab="True"
+                 TextWrapping="NoWrap"
+                 FontFamily="Consolas, Menlo, Monaco, monospace"
+                 FontSize="14"
+                 BorderThickness="0" />
+    </DockPanel>
+
+</Window>

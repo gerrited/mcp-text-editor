@@ -6,9 +6,9 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class GetSelectionTool
 {
-    [McpServerTool("editor_get_selection"),
+    [McpServerTool(Name = "editor_get_selection"),
      Description("Get the currently selected text in the editor, along with its start position and length.")]
-    public static string GetSelection(EditorForm editor)
+    public static string GetSelection(MainWindow editor)
     {
         var (text, start, length) = editor.GetSelection();
 

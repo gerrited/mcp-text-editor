@@ -6,9 +6,9 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class GetTextTool
 {
-    [McpServerTool("editor_get_text"),
+    [McpServerTool(Name = "editor_get_text"),
      Description("Get the entire text content currently displayed in the editor.")]
-    public static string GetText(EditorForm editor)
+    public static string GetText(MainWindow editor)
     {
         var text = editor.GetText();
         var filePath = editor.GetCurrentFilePath() ?? "(untitled)";

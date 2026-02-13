@@ -1,25 +1,24 @@
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using McpTextEditor;
-using McpTextEditor.Mcp;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ModelContextProtocol.Server;
-using System.Threading;
 
 // ─── IMPORTANT ───────────────────────────────────────────────────────────
 // This app uses stdio for MCP communication.
 // stdout is RESERVED for the MCP protocol – all logging goes to stderr.
-// Claude Desktop launches this as:  "command": "McpTextEditor.exe"
+// Claude Desktop launches this as:  "command": "McpTextEditor"
 // ──────────────────────────────────────────────────────────────────────────
 
-// WinForms requires STA thread; we start the MCP server on a background thread.
+// Avalonia requires the main thread; we start the MCP server on a background thread.
 var uiReady = new ManualResetEventSlim(false);
-EditorForm? editorForm = null;
+MainWindow? editorWindow = null;
 
 // 1) Start MCP server on a background thread
 var mcpThread = new Thread(() =>
 {
-    // Wait until the UI is ready so we can pass the form reference to tools
+    // Wait until the UI is ready so we can pass the window reference to tools
     uiReady.Wait();
 
     var builder = Host.CreateApplicationBuilder();
@@ -28,24 +27,14 @@ var mcpThread = new Thread(() =>
     builder.Logging.ClearProviders();
     builder.Logging.AddConsole(opts => opts.LogToStandardErrorThreshold = LogLevel.Trace);
 
-    // Register the editor form as a singleton so MCP tools can access it
-    builder.Services.AddSingleton(editorForm!);
+    // Register the editor window as a singleton so MCP tools can access it
+    builder.Services.AddSingleton<MainWindow>(editorWindow!);
 
     // Register MCP server with stdio transport
-    builder.Services.AddMcpServer(options =>
-    {
-        options.ServerInfo = new()
-        {
-            Name = "mcp-text-editor",
-            Version = "1.0.0"
-        };
-        options.Capabilities = new()
-        {
-            Tools = new() { }
-        };
-    })
-    .WithStdioServerTransport()
-    .WithToolsFromAssembly();
+    builder.Services
+        .AddMcpServer()
+        .WithStdioServerTransport()
+        .WithToolsFromAssembly(typeof(MainWindow).Assembly);
 
     var host = builder.Build();
 
@@ -59,9 +48,9 @@ var mcpThread = new Thread(() =>
     }
 
     // If MCP server shuts down, close the UI
-    if (editorForm != null && !editorForm.IsDisposed)
+    if (editorWindow != null)
     {
-        editorForm.Invoke(() => editorForm.Close());
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => editorWindow.Close());
     }
 })
 {
@@ -70,11 +59,17 @@ var mcpThread = new Thread(() =>
 };
 mcpThread.Start();
 
-// 2) Start WinForms on the main (STA) thread
-ApplicationConfiguration.Initialize();
-editorForm = new EditorForm();
-
-// Signal MCP thread that the form is ready
-uiReady.Set();
-
-Application.Run(editorForm);
+// 2) Start Avalonia on the main thread
+AppBuilder.Configure<App>()
+    .UsePlatformDetect()
+    .StartWithClassicDesktopLifetime(args, lifetime =>
+    {
+        lifetime.Startup += (_, _) =>
+        {
+            if (Application.Current is App app)
+            {
+                editorWindow = app.EditorWindow;
+                uiReady.Set();
+            }
+        };
+    });

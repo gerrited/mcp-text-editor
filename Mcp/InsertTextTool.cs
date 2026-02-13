@@ -6,10 +6,10 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class InsertTextTool
 {
-    [McpServerTool("editor_insert_text"),
+    [McpServerTool(Name = "editor_insert_text"),
      Description("Insert text at a specific character position in the editor. Position 0 inserts at the beginning.")]
     public static string InsertText(
-        EditorForm editor,
+        MainWindow editor,
         [Description("The text to insert.")] string text,
         [Description("The character position (0-based) where text should be inserted.")] int position)
     {

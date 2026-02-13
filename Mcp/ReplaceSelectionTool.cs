@@ -6,10 +6,10 @@ namespace McpTextEditor.Mcp;
 [McpServerToolType]
 public static class ReplaceSelectionTool
 {
-    [McpServerTool("editor_replace_selection"),
+    [McpServerTool(Name = "editor_replace_selection"),
      Description("Replace the currently selected text in the editor with new text. Fails if nothing is selected.")]
     public static string ReplaceSelection(
-        EditorForm editor,
+        MainWindow editor,
         [Description("The new text to replace the selection with.")] string newText)
     {
         try
