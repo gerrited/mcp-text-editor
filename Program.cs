@@ -4,12 +4,11 @@ using McpTextEditor;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using System.Security.Cryptography.X509Certificates;
+using System.Net;
 
 // ─── IMPORTANT ───────────────────────────────────────────────────────────
 // Transport mode is configured in appsettings.json:
@@ -42,6 +41,10 @@ var mcpThread = new Thread(() =>
     }
     else
     {
+        if (!transportConfig.Mode.Equals("Stdio", StringComparison.OrdinalIgnoreCase))
+        {
+            Console.Error.WriteLine($"[MCP] Unknown transport mode '{transportConfig.Mode}', defaulting to Stdio.");
+        }
         RunStdioTransport(editorWindow!);
     }
 
@@ -88,7 +91,7 @@ static void RunStdioTransport(MainWindow editorWindow)
         .WithStdioServerTransport()
         .WithToolsFromAssembly(typeof(MainWindow).Assembly);
 
-    var host = builder.Build();
+    using var host = builder.Build();
 
     try
     {
@@ -111,7 +114,9 @@ static void RunHttpTransport(MainWindow editorWindow, TransportConfig transportC
     builder.WebHost.UseKestrel(kestrel =>
     {
         var uri = new Uri(httpConfig.Url);
-        kestrel.ListenAnyIP(uri.Port, listenOptions =>
+        var isLocalhost = uri.Host is "localhost" or "127.0.0.1" or "::1";
+
+        void ConfigureListener(Microsoft.AspNetCore.Server.Kestrel.Core.ListenOptions listenOptions)
         {
             if (uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase))
             {
@@ -125,7 +130,16 @@ static void RunHttpTransport(MainWindow editorWindow, TransportConfig transportC
                     listenOptions.UseHttps();
                 }
             }
-        });
+        }
+
+        if (isLocalhost)
+        {
+            kestrel.ListenLocalhost(uri.Port, ConfigureListener);
+        }
+        else
+        {
+            kestrel.Listen(IPAddress.Parse(uri.Host), uri.Port, ConfigureListener);
+        }
     });
 
     // Register editor window and HTTP config
@@ -148,11 +162,16 @@ static void RunHttpTransport(MainWindow editorWindow, TransportConfig transportC
         .AddAuthorizationFilters()
         .WithToolsFromAssembly(typeof(MainWindow).Assembly);
 
-    var app = builder.Build();
+    using var app = builder.Build();
 
     app.UseAuthentication();
     app.UseAuthorization();
     app.MapMcp(httpConfig.McpPath);
+
+    if (string.IsNullOrEmpty(httpConfig.ApiKey))
+    {
+        Console.Error.WriteLine("[MCP] WARNING: No API key configured. HTTP endpoint is open to all requests.");
+    }
 
     try
     {
