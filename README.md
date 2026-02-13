@@ -127,6 +127,33 @@ curl -k -H "Authorization: Bearer your-secret-key" \
   -d '{"jsonrpc":"2.0","method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}},"id":1}'
 ```
 
+### Connecting Claude Desktop to HTTP Mode
+
+Claude Desktop doesn't natively support bearer token authentication over Streamable HTTP. Use the [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) npm package as a bridge:
+
+```json
+{
+  "mcpServers": {
+    "text-editor": {
+      "command": "npx",
+      "args": [
+        "mcp-remote",
+        "https://localhost:5000/mcp",
+        "--header",
+        "Authorization: Bearer your-secret-key"
+      ],
+      "env": {
+        "NODE_EXTRA_CA_CERTS": "/path/to/dev-cert.pem"
+      }
+    }
+  }
+}
+```
+
+> **HTTPS with dev certs:** Node.js doesn't trust the .NET dev certificate by default. Either export it as PEM (`dotnet dev-certs https --export-path ./dev-cert.pem --format Pem --no-password`) and set `NODE_EXTRA_CA_CERTS`, or use `"NODE_OPTIONS": "--use-system-ca"` (Node.js 23.8+), or switch to plain `http://` for localhost.
+
+Requires [Node.js](https://nodejs.org/) (for npx).
+
 ## Available MCP Tools
 
 | Tool | Description |
