@@ -5,11 +5,11 @@ A cross-platform text editor that can be remote-controlled via the **Model Conte
 ## Architecture
 
 ```
-┌──────────────┐     stdio (stdin/stdout)     ┌─────────────────────┐
-│ Claude       │ ◄──────────────────────────► │  McpTextEditor      │
+┌──────────────┐     stdio (stdin/stdout)      ┌─────────────────────┐
+│ Claude       │ ◄──────────────────────────►  │  McpTextEditor      │
 │ Desktop      │    MCP JSON-RPC messages      │                     │
 │              │                               │  ┌───────────────┐  │
-│  (MCP Client)│                               │  │ MCP Server    │  │
+│ (MCP Client) │                               │  │ MCP Server    │  │
 │              │                               │  │ (background)  │  │
 │              │                               │  └──────┬────────┘  │
 │              │                               │         │ Dispatch  │
