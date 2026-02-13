@@ -26,7 +26,7 @@ A cross-platform text editor that can be remote-controlled via the **Model Conte
 
 ## Prerequisites
 
-- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
 - [Claude Desktop](https://claude.ai/download) (for MCP integration)
 
 ## Build & Run
@@ -37,7 +37,7 @@ dotnet build -c Release
 
 The built executable will be at:
 ```
-bin/Release/net8.0/McpTextEditor
+bin/Release/net10.0/McpTextEditor
 ```
 
 ### Standalone run (without Claude)
@@ -62,7 +62,7 @@ Add this to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "text-editor": {
-      "command": "/path/to/McpTextEditor/bin/Release/net8.0/McpTextEditor"
+      "command": "/path/to/McpTextEditor/bin/Release/net10.0/McpTextEditor"
     }
   }
 }
